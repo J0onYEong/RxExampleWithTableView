@@ -12,11 +12,13 @@ import RxCocoa // RxSwift를 UIKit과 함께 사용하는데 도움을 주는 Ex
 
 struct Menu {
     
+    var id: Int
     var name: String
     var price: Int
     var count: Int
 }
 
+// ViewModel로 테스트 케이스를 만들기가 굉장히 수월하다
 class MenuListViewModel {
     
     let menuObservable = BehaviorSubject<[Menu]>(value: [])
@@ -36,10 +38,10 @@ class MenuListViewModel {
     init() {
         
         let menus: [Menu] = [
-            Menu(name: "메뉴1", price: 1_000, count: 100),
-            Menu(name: "메뉴2", price: 2_000, count: 100),
-            Menu(name: "메뉴3", price: 3_000, count: 100),
-            Menu(name: "메뉴4", price: 4_000, count: 100),
+            Menu(id: 0, name: "메뉴1", price: 1_000, count: 100),
+            Menu(id: 1, name: "메뉴2", price: 2_000, count: 100),
+            Menu(id: 2, name: "메뉴3", price: 3_000, count: 100),
+            Menu(id: 3, name: "메뉴4", price: 4_000, count: 100),
         ]
         
         menuObservable.onNext(menus)
@@ -51,12 +53,35 @@ class MenuListViewModel {
         _ = menuObservable
             .map { menus in
                 menus.map {
-                    Menu(name: $0.name, price: $0.price, count: 0)
+                    Menu(id: $0.id, name: $0.name, price: $0.price, count: 0)
                 }
             }
             .take(1)
             .subscribe(onNext: { self.menuObservable.onNext($0) })
         
+    }
+    
+    func onChange(menu: Menu, increase: Int) {
+        
+        _ = menuObservable
+            .map { menus in
+                
+                menus.map { m in
+                    
+                    if m.id == menu.id {
+                        
+                        return Menu(id: m.id, name: m.name, price: m.price, count: max(m.count+increase, 0))
+                    }
+                    
+                    return m
+                }
+            }
+            .take(1)
+            .subscribe(onNext: {
+                
+                // 값을 변경하고, 자신이 다시 publish하는 패턴, take를 사용해 재귀호출을 막음
+                self.menuObservable.onNext($0)
+            })
     }
 }
 
@@ -83,6 +108,12 @@ class MenuViewController: UIViewController {
                 cell.title.text = item.name
                 cell.price.text = "\(item.price)"
                 cell.count.text = "\(item.count)"
+                
+                cell.onChange = { [weak self] increase in
+                    
+                    self?.viewModel.onChange(menu: item, increase: increase)
+                }
+                
             }
             .disposed(by: disposeBag)
         
