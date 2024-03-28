@@ -44,6 +44,20 @@ class MenuListViewModel {
         
         menuObservable.onNext(menus)
     }
+    
+    func clearMenus() {
+        
+        // 한번 값 수령시 자동 Dispose(take), 호출마다 구독
+        _ = menuObservable
+            .map { menus in
+                menus.map {
+                    Menu(name: $0.name, price: $0.price, count: 0)
+                }
+            }
+            .take(1)
+            .subscribe(onNext: { self.menuObservable.onNext($0) })
+        
+    }
 }
 
 
@@ -61,6 +75,7 @@ class MenuViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // 추후 분석
         viewModel.menuObservable
             .observeOn(MainScheduler.instance)
             .bind(to: tableView.rx.items(cellIdentifier: cellId, cellType: MenuItemTableViewCell.self)) { index, item, cell in
@@ -112,6 +127,8 @@ class MenuViewController: UIViewController {
     @IBOutlet var totalPrice: UILabel!
 
     @IBAction func onClear() {
+        
+        viewModel.clearMenus()
     }
 
     @IBAction func onOrder(_ sender: UIButton) {
