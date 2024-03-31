@@ -78,6 +78,7 @@ class MenuListViewModel {
     func onChange(menu: Menu, increase: Int) {
         
         _ = menuObservable
+            .take(1)
             .map { menus in
                 
                 menus.map { m in
@@ -90,7 +91,6 @@ class MenuListViewModel {
                     return m
                 }
             }
-            .take(1)
             .subscribe(onNext: {
                 
                 // 값을 변경하고, 자신이 다시 publish하는 패턴, take를 사용해 재귀호출을 막음
